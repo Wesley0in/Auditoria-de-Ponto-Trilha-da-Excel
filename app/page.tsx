@@ -137,7 +137,7 @@ export default function PlanilhaProcessor() {
             <img 
               src="/kontik-logo.png" 
               alt="Logo Kontik" 
-              className="h-10 w-auto object-contain" 
+              className="h-30 w-auto object-contain" 
             />
           </div>
           <h1 className="text-2xl font-semibold text-foreground tracking-tight">
@@ -197,7 +197,7 @@ export default function PlanilhaProcessor() {
                   Por favor, aguarde enquanto realizamos a auditoria.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Isso pode levar alguns segundos.
+                  Isso pode levar até 1 minuto. Por favor aguarde!
                 </p>
               </div>
             </CardContent>
