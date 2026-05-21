@@ -133,13 +133,12 @@ export default function PlanilhaProcessor() {
     <main className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-xl">
         <header className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-[#C2D82F]/20 rounded-lg">
-              <FileSpreadsheet className="size-6 text-[#404653]" />
-            </div>
-            <Badge variant="secondary" className="text-xs font-medium">
-              Integração n8n
-            </Badge>
+          <div className="mb-4">
+            <img 
+              src="/kontik-logo.png" 
+              alt="Logo Kontik" 
+              className="h-10 w-auto object-contain" 
+            />
           </div>
           <h1 className="text-2xl font-semibold text-foreground tracking-tight">
             Auditoria de Ponto — Trilha da Excelência
@@ -294,12 +293,7 @@ export default function PlanilhaProcessor() {
           )}
         </Card>
 
-        {/* Footer */}
-        <footer className="mt-6 text-center">
-          <p className="text-xs text-muted-foreground">
-            folha de ponto → n8n → auditoria concluída
-          </p>
-        </footer>
+
       </div>
     </main>
   )
