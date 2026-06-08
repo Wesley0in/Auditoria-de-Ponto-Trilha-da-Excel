@@ -8,6 +8,20 @@ import { Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle, Loader2, 
 
 const N8N_WEBHOOK_URL = "https://n8n-n8n.wtrtwm.easypanel.host/webhook/auditoria-ponto"
 
+// Converte base64 (com ou sem prefixo data:) em uma URL de download de arquivo Excel.
+// O atob() do navegador falha se a string tiver prefixo "data:...;base64," ou
+// quebras de linha/espacos, entao limpamos antes de decodificar.
+function base64ParaUrl(base64: string): string {
+  const limpo = base64
+    .replace(/^data:.*;base64,/, "")
+    .replace(/\s/g, "")
+  const bytes = Uint8Array.from(atob(limpo), (c) => c.charCodeAt(0))
+  const blob = new Blob([bytes], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  })
+  return URL.createObjectURL(blob)
+}
+
 export default function PlanilhaProcessor() {
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
@@ -80,18 +94,14 @@ export default function PlanilhaProcessor() {
 
       // Processar Resultado Final
       if (resJson.resultado_final?.data) {
-        const bytes = Uint8Array.from(atob(resJson.resultado_final.data), c => c.charCodeAt(0))
-        const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        const url = URL.createObjectURL(blob)
+        const url = base64ParaUrl(resJson.resultado_final.data)
         setResultadoFinalUrl(url)
         setResultadoFinalFilename(resJson.resultado_final.filename || "Resultado_final.xlsx")
       }
 
       // Processar Revisao Humana
       if (resJson.revisao_humana?.data) {
-        const bytes = Uint8Array.from(atob(resJson.revisao_humana.data), c => c.charCodeAt(0))
-        const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        const url = URL.createObjectURL(blob)
+        const url = base64ParaUrl(resJson.revisao_humana.data)
         setRevisaoHumanaUrl(url)
         setRevisaoHumanaFilename(resJson.revisao_humana.filename || "Revisao_humana.xlsx")
       }
