@@ -8,17 +8,40 @@ import { Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle, Loader2, 
 
 const N8N_WEBHOOK_URL = "https://n8n-n8n.wtrtwm.easypanel.host/webhook/auditoria-ponto"
 
-// Converte base64 (com ou sem prefixo data:) em uma URL de download de arquivo Excel.
-// O atob() do navegador falha se a string tiver prefixo "data:...;base64," ou
-// quebras de linha/espacos, entao limpamos antes de decodificar.
-function base64ParaUrl(base64: string): string {
-  const limpo = base64
-    .replace(/^data:.*;base64,/, "")
-    .replace(/\s/g, "")
-  const bytes = Uint8Array.from(atob(limpo), (c) => c.charCodeAt(0))
-  const blob = new Blob([bytes], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  })
+const EXCEL_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+// Converte o conteudo recebido do n8n em uma URL de download de Excel.
+// O n8n pode enviar o arquivo em formatos diferentes, entao tratamos todos:
+//   1. Buffer serializado em JSON: { type: "Buffer", data: [104, 101, ...] }
+//   2. Array de bytes puro: [104, 101, ...]
+//   3. String base64 (com ou sem prefixo "data:...;base64," e/ou whitespace)
+function conteudoParaUrl(conteudo: unknown): string {
+  let bytes: Uint8Array
+
+  // Caso 1 e 2: Buffer serializado ou array de numeros
+  const arrayDeBytes = Array.isArray(conteudo)
+    ? conteudo
+    : conteudo && typeof conteudo === "object" && Array.isArray((conteudo as any).data)
+      ? (conteudo as any).data
+      : null
+
+  if (arrayDeBytes) {
+    bytes = Uint8Array.from(arrayDeBytes as number[])
+  } else if (typeof conteudo === "string") {
+    // Caso 3: string base64
+    const limpo = conteudo.replace(/^data:.*;base64,/, "").replace(/\s/g, "")
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(limpo)) {
+      console.log("[v0] String recebida nao e base64 valido:", limpo.slice(0, 80))
+      throw new Error("O conteudo recebido do n8n nao esta em base64 valido.")
+    }
+    bytes = Uint8Array.from(atob(limpo), (c) => c.charCodeAt(0))
+  } else {
+    console.log("[v0] Formato de conteudo inesperado:", typeof conteudo, conteudo)
+    throw new Error("Formato de arquivo recebido do n8n nao reconhecido.")
+  }
+
+  const blob = new Blob([bytes], { type: EXCEL_MIME })
   return URL.createObjectURL(blob)
 }
 
@@ -87,6 +110,7 @@ export default function PlanilhaProcessor() {
       if (!response.ok) throw new Error(`Erro do servidor: ${response.status}`)
 
       const resJson = await response.json()
+      console.log("[v0] Resposta do n8n:", resJson)
 
       if (!resJson.sucesso) {
         throw new Error("O processamento retornou um status de falha do n8n.")
@@ -94,14 +118,14 @@ export default function PlanilhaProcessor() {
 
       // Processar Resultado Final
       if (resJson.resultado_final?.data) {
-        const url = base64ParaUrl(resJson.resultado_final.data)
+        const url = conteudoParaUrl(resJson.resultado_final.data)
         setResultadoFinalUrl(url)
         setResultadoFinalFilename(resJson.resultado_final.filename || "Resultado_final.xlsx")
       }
 
       // Processar Revisao Humana
       if (resJson.revisao_humana?.data) {
-        const url = base64ParaUrl(resJson.revisao_humana.data)
+        const url = conteudoParaUrl(resJson.revisao_humana.data)
         setRevisaoHumanaUrl(url)
         setRevisaoHumanaFilename(resJson.revisao_humana.filename || "Revisao_humana.xlsx")
       }
